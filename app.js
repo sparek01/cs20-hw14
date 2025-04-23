@@ -15,7 +15,7 @@ http.createServer(async function (req, res) {
     const urlObj = url.parse(req.url, true);
 
     // home view
-    if (req.method == 'GET' && urlObj.pathname == '/') {
+    if (urlObj.pathname == '/') {
         const filePath = path.join(__dirname, 'index.html');
         fs.readFile(filePath, (err, content) => {
             res.writeHead(200, { 'Content-Type': 'text/html' });
@@ -23,15 +23,15 @@ http.createServer(async function (req, res) {
         });
     } 
     // process view
-    else if (req.method == 'GET' && urlObj.pathname == '/process') {
+    else if (urlObj.pathname == '/process') {
         const queryParam = urlObj.query.query; // what they searched for
         const searchType = urlObj.query.searchType; // search type of 'company' or 'ticker'
 
         // set the search type
         let searchQuery;
-        if (searchType === 'name') {
+        if (searchType == 'name') {
             searchQuery = { company: queryParam};
-        } else if (searchType === 'ticker') {
+        } else if (searchType == 'ticker') {
             searchQuery = { ticker: queryParam};
         }
 
