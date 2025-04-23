@@ -1,88 +1,76 @@
+// source: https://www.w3schools.com/nodejs/nodejs_mongodb_find.asp
+// source: https://www.w3schools.com/nodejs/met_path_dirname.asp
+
 var http = require('http');
 var fs = require('fs');
 var path = require('path');
 var url = require('url');
 const { MongoClient } = require('mongodb');
 
-// Using environment variable for MongoDB URI
-const connStr = process.env.MONGO_URI;
+const connStr = "mongodb+srv://shivaniparekh:Doofferb18$@cluster0.b0k69lf.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 const client = new MongoClient(connStr);
 const PORT = process.env.PORT || 3000;
-
-let db;
-
-// Initialize MongoDB connection
-async function initDb() {
-    try {
-        await client.connect();
-        db = client.db('Stock');
-        console.log('Connected to MongoDB');
-    } catch (error) {
-        console.error('Error connecting to MongoDB:', error);
-    }
-}
-
-// Call the initDb function to establish the MongoDB connection at startup
-initDb();
 
 http.createServer(async function (req, res) {
     const urlObj = url.parse(req.url, true);
 
-    // Home view
+    // home view
     if (req.method === 'GET' && urlObj.pathname === '/') {
         const filePath = path.join(__dirname, 'index.html');
         fs.readFile(filePath, (err, content) => {
-            if (err) {
-                res.writeHead(500, { 'Content-Type': 'text/html' });
-                res.end('<p>Error loading the home page.</p>');
-                return;
-            }
             res.writeHead(200, { 'Content-Type': 'text/html' });
             res.end(content);
         });
     } 
-    // Process view (search results)
+    // process view
     else if (req.method === 'GET' && urlObj.pathname === '/process') {
-        const queryParam = urlObj.query.query; // Search query
-        const searchType = urlObj.query.searchType; // 'name' or 'ticker'
+        const queryParam = urlObj.query.query; // what they searched for
+        const searchType = urlObj.query.searchType; // search type of 'company' or 'ticker'
 
+        // set the search type
         let searchQuery;
         if (searchType === 'name') {
-            searchQuery = { company: queryParam };
+            searchQuery = { company: queryParam};
         } else if (searchType === 'ticker') {
-            searchQuery = { ticker: queryParam };
+            searchQuery = { ticker: queryParam};
         }
 
+        // output search to console log
         console.log('MongoDB Query:', searchQuery); 
 
         try {
-            // Query MongoDB for the results
-            const collection = db.collection('PublicCompanies');
+            await client.connect();
+            const db = client.db("Stock");
+            const collection = db.collection("PublicCompanies");
+
+            // for searching
             const results = await collection.find(searchQuery).toArray();
 
+            // output search results to console log and to html web page
             let html = `<h1>Search Results</h1>`;
             if (results.length > 0) {
                 results.forEach(item => {
+                    console.log(`Company: ${item.company}, Ticker: ${item.ticker}, Price: $${item.price}`);
                     html += `<p><strong>${item.company}</strong> (${item.ticker}) - $${item.price}</p>`;
                 });
             } else {
+                console.log("No results found.");
                 html += "<p>No results found.</p>";
             }
+
+            // reset
             html += `<br><a href="/">Back to search</a>`;
 
+            // send response to browser
             res.writeHead(200, { 'Content-Type': 'text/html' });
             res.end(html);
 
-        } catch (error) {
-            console.error('MongoDB query error:', error);
-            res.writeHead(500, { 'Content-Type': 'text/html' });
-            res.end('<p>Internal server error occurred.</p>');
+        } finally {
+            await client.close();
         }
     } else {
-        // Handle 404 errors
+        // error if something went wrong
         res.writeHead(404, { 'Content-Type': 'text/html' });
         res.end('<p>Page not found.</p>');
     }
-}).listen(PORT, () => {
-    console.log(`Server is listening on port ${PORT}`);
-});
+}).listen(PORT);
