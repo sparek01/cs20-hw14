@@ -43,7 +43,6 @@ http.createServer(async function (req, res) {
             const db = client.db("Stock");
             const collection = db.collection("PublicCompanies");
 
-            // for searching
             const results = await collection.find(searchQuery).toArray();
 
             // output search results to console log and to html web page
@@ -62,15 +61,11 @@ http.createServer(async function (req, res) {
             html += `<br><a href="/">Back to search</a>`;
 
             // send response to browser
-            res.writeHead(404, { 'Content-Type': 'text/html' });
+            res.writeHead(200, { 'Content-Type': 'text/html' });
             res.end(html);
 
         } finally {
             await client.close();
         }
-    } else {
-        // error if something went wrong
-        res.writeHead(404, { 'Content-Type': 'text/html' });
-        res.end('<p>Page not found.</p>');
     }
 }).listen(PORT);
