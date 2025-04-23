@@ -10,6 +10,9 @@
   "author": "",
   "license": "ISC",
   "description": "",
+  "engines": {
+    "node": "23.11.0"
+  },
   "dependencies": {
     "mongodb": "^6.15.0",
     "npm": "4.0"
