@@ -62,7 +62,7 @@ http.createServer(async function (req, res) {
             html += `<br><a href="/">Back to search</a>`;
 
             // send response to browser
-            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.writeHead(404, { 'Content-Type': 'text/html' });
             res.end(html);
 
         } finally {
