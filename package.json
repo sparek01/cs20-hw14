@@ -6,6 +6,7 @@
     "start": "node app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "homepage": "https://cs20stock-dc3865770445.herokuapp.com/",
   "keywords": [],
   "author": "",
   "license": "ISC",
