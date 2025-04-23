@@ -1,94 +1,76 @@
-const http = require('http');
-const mongoose = require('mongoose');
-const url = require('url');
-const querystring = require('querystring');
+// source: https://www.w3schools.com/nodejs/nodejs_mongodb_find.asp
+// source: https://www.w3schools.com/nodejs/met_path_dirname.asp
 
-// Get MongoDB URI from environment variables
-const mongodbUri = process.env.MONGODB_URI;
+var http = require('http');
+var fs = require('fs');
+var path = require('path');
+var url = require('url');
+const { MongoClient } = require('mongodb');
 
-// MongoDB connection setup
-mongoose.connect(mongodbUri, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  ssl: true, // Ensure SSL is enabled
-  sslValidate: false, // For compatibility with older TLS versions
-  tlsAllowInvalidCertificates: true, // Optional: allows invalid certificates (use with caution)
-})
-  .then(() => {
-    console.log('Connected to MongoDB');
-  })
-  .catch((error) => {
-    console.error('Error connecting to MongoDB:', error);
-  });
+const connStr = "mongodb+srv://shivaniparekh:Doofferb18$@cluster0.b0k69lf.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const client = new MongoClient(connStr);
+const PORT = process.env.PORT || 3000;
 
-// Basic Stock Schema (for example purposes)
-const Stock = mongoose.model('Stock', {
-  ticker: String,
-  name: String,
-  price: Number,
-});
+http.createServer(async function (req, res) {
+    const urlObj = url.parse(req.url, true);
 
-// Create a basic HTTP server
-const server = http.createServer((req, res) => {
-  // Handle root (home) page
-  if (req.method === 'GET' && req.url === '/') {
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(`
-      <h1>Welcome to the Stock Ticker App</h1>
-      <form action="/process" method="GET">
-        <label>Enter ticker symbol or company name:</label>
-        <input type="text" name="query" required />
-        <br>
+    // home view
+    if (req.method === 'GET' && urlObj.pathname === '/') {
+        const filePath = path.join(__dirname, 'index.html');
+        fs.readFile(filePath, (err, content) => {
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(content);
+        });
+    } 
+    // process view
+    else if (req.method === 'GET' && urlObj.pathname === '/process') {
+        const queryParam = urlObj.query.query; // what they searched for
+        const searchType = urlObj.query.searchType; // search type of 'company' or 'ticker'
 
-        <label><input type="radio" name="searchType" value="ticker" checked /> Ticker symbol</label>
-        <label><input type="radio" name="searchType" value="name" /> Company name</label>
-        <br>
-
-        <button type="submit">Search</button>
-      </form>
-    `);
-  }
-  // Handle /process route (stock search)
-  else if (req.method === 'GET' && req.url.startsWith('/process')) {
-    const queryObject = url.parse(req.url, true).query;
-    const query = queryObject.query;
-    const searchType = queryObject.searchType;
-
-    // Here you would query MongoDB based on the searchType
-    // For simplicity, we'll simulate a response with mock data
-    if (searchType === 'ticker') {
-      Stock.find({ ticker: query }, (err, result) => {
-        if (err) {
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Database query error' }));
-        } else {
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ result }));
+        // set the search type
+        let searchQuery;
+        if (searchType === 'name') {
+            searchQuery = { company: queryParam};
+        } else if (searchType === 'ticker') {
+            searchQuery = { ticker: queryParam};
         }
-      });
-    } else if (searchType === 'name') {
-      Stock.find({ name: query }, (err, result) => {
-        if (err) {
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Database query error' }));
-        } else {
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ result }));
+
+        // output search to console log
+        console.log('MongoDB Query:', searchQuery); 
+
+        try {
+            await client.connect();
+            const db = client.db("Stock");
+            const collection = db.collection("PublicCompanies");
+
+            // for searching
+            const results = await collection.find(searchQuery).toArray();
+
+            // output search results to console log and to html web page
+            let html = `<h1>Search Results</h1>`;
+            if (results.length > 0) {
+                results.forEach(item => {
+                    console.log(`Company: ${item.company}, Ticker: ${item.ticker}, Price: $${item.price}`);
+                    html += `<p><strong>${item.company}</strong> (${item.ticker}) - $${item.price}</p>`;
+                });
+            } else {
+                console.log("No results found.");
+                html += "<p>No results found.</p>";
+            }
+
+            // reset
+            html += `<br><a href="/">Back to search</a>`;
+
+            // send response to browser
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(html);
+
+        } finally {
+            await client.close();
         }
-      });
     } else {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Invalid search type' }));
+        // error if something went wrong
+        res.writeHead(404, { 'Content-Type': 'text/html' });
+        res.end('<p>Page not found.</p>');
     }
-  }
-  // Handle 404 for other routes
-  else {
-    res.writeHead(404, { 'Content-Type': 'text/html' });
-    res.end('<h1>Page Not Found</h1>');
-  }
-});
-
-// Listen on port 3000 or the Heroku-assigned port
-server.listen(process.env.PORT || 3000, () => {
-  console.log('Server running...');
-});
+}).listen(PORT);
