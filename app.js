@@ -7,7 +7,7 @@ var path = require('path');
 var url = require('url');
 const { MongoClient } = require('mongodb');
 
-const connStr = "mongodb+srv://shivaniparekh:Doofferb18%24@cluster0.b0k69lf.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const connStr = "mongodb+srv://shivaniparekh:Doofferb18$@cluster0.b0k69lf.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 const client = new MongoClient(connStr);
 const PORT = process.env.PORT || 3000;
 

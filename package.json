@@ -12,8 +12,5 @@
   "description": "",
   "dependencies": {
     "mongodb": "^6.16.0"
-  },
-  "engines": {
-    "node": "16.x"
   }
 }
